@@ -1,0 +1,61 @@
+# Pokémon Eclipse / Asterra v0.2
+# Native FireRed starter-lab integration plan
+#
+# This is intentionally a source-integration specification rather than a
+# blind binary patch. Apply it to a compatible pret/pokefirered checkout after
+# the source tree is present in the Asterra repository.
+#
+# Upstream reference:
+# data/maps/PalletTown_ProfessorOaksLab/scripts.inc
+#
+# Current vanilla scene starts at:
+# PalletTown_ProfessorOaksLab_ChooseStarterScene
+#
+# Existing upstream state variables:
+# VAR_TEMP_1 = player starter selection
+# VAR_TEMP_2 = battle position
+# VAR_TEMP_3 = rival starter species
+# VAR_TEMP_4 = rival starter trainer id
+#
+# Asterra will replace the opening choice scene with:
+#
+#   Lyra introduction
+#       -> generation selection (I/II/III)
+#       -> starter selection (3 choices)
+#       -> store generation + choice
+#       -> give selected species at Lv5
+#       -> choose Nova counter
+#       -> continue into the existing rival-battle scene
+#
+# Required new persistent variables should be allocated from the project's
+# free permanent variable range rather than TEMP_VARS, because TEMP_VARS are
+# cleared on map load.
+#
+# Required script state:
+#   ASTERRA_STARTER_GENERATION
+#   ASTERRA_STARTER_CHOICE
+#   ASTERRA_NOVA_STARTER
+#
+# Required native game operations:
+#   - native list/menu UI for generation selection
+#   - native list/menu UI for starter selection
+#   - party insertion using FireRed's existing GiveMon/givemon mechanism
+#   - trainer selection using FireRed's trainer-battle system
+#
+# Nine initial choices:
+#   Gen I:   BULBASAUR / CHARMANDER / SQUIRTLE
+#   Gen II:  CHIKORITA / CYNDAQUIL / TOTODILE
+#   Gen III: TREECKO / TORCHIC / MUDKIP
+#
+# Nova counter mapping:
+#   choice 0 -> choice 2
+#   choice 1 -> choice 0
+#   choice 2 -> choice 1
+#
+# IMPORTANT:
+# The current upstream lab script contains extensive movement choreography
+# and fixed trainer battle labels. Those should be preserved where possible;
+# only the starter-selection state and trainer selection need replacement.
+#
+# Do not replace the upstream file wholesale until the exact script-menu API
+# and free save-variable allocation have been verified against the checkout.
