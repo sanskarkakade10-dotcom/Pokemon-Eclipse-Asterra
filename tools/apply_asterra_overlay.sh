@@ -21,16 +21,9 @@ cp "${ROOT}/src/starter_system/starter_sets.h" "${BUILD_DIR}/include/asterra/sta
 cp "${ROOT}/src/starter_system/rival_logic.h" "${BUILD_DIR}/include/asterra/rival_logic.h"
 cp "${ROOT}/src/starter_system/starter_selection.c" "${BUILD_DIR}/src/asterra_starter_selection.c"
 
-# Native FireRed script integration.
-# Keep the upstream script available as a reference and install the Asterra
-# starter-lab replacement as an explicit patch artifact. The build workflow
-# applies this patch only after verifying the pinned upstream revision.
-PATCH="${ROOT}/patches/v0.2/starter_lab_integration.patch"
-if [[ ! -f "${PATCH}" ]]; then
-    echo "Missing starter-lab integration patch: ${PATCH}" >&2
-    exit 1
-fi
+# The native field-script replacement is intentionally gated until its exact
+# script-command implementation is validated against this pinned source.
+# Do not apply a placeholder patch to the ROM build.
 
-patch -d "${BUILD_DIR}" -p1 --forward < "${PATCH}"
-
-echo "Asterra v0.2 native starter overlay installed against ${UPSTREAM_COMMIT}."
+echo "Asterra v0.2 starter core installed against ${UPSTREAM_COMMIT}."
+echo "Native field-script integration remains a required v0.2 build gate."
