@@ -21,9 +21,6 @@ cp "${ROOT}/src/starter_system/starter_sets.h" "${BUILD_DIR}/include/asterra/sta
 cp "${ROOT}/src/starter_system/rival_logic.h" "${BUILD_DIR}/include/asterra/rival_logic.h"
 cp "${ROOT}/src/starter_system/starter_selection.c" "${BUILD_DIR}/src/asterra_starter_selection.c"
 
-# The native field-script replacement is intentionally gated until its exact
-# script-command implementation is validated against this pinned source.
-# Do not apply a placeholder patch to the ROM build.
+python3 "${ROOT}/tools/patch_starter_scene.py"
 
-echo "Asterra v0.2 starter core installed against ${UPSTREAM_COMMIT}."
-echo "Native field-script integration remains a required v0.2 build gate."
+echo "Asterra v0.2 starter core and native starter selection installed against ${UPSTREAM_COMMIT}."
