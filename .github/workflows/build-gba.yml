@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build-gba:
     runs-on: ubuntu-latest
@@ -19,34 +22,36 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential binutils-arm-none-eabi git libpng-dev
 
-      - name: Fetch FireRed decompilation build base
+      - name: Fetch pinned FireRed source
         run: |
           mkdir -p build
-          git clone --depth 1 https://github.com/pret/pokefirered.git build/pokefirered
-          git clone --depth 1 https://github.com/pret/agbcc.git build/agbcc
+          git clone https://github.com/pret/pokefirered.git build/pokefirered
+          git -C build/pokefirered checkout c75f352304d529f6ba92d4f74b9cf8b5c3810788
+          test "$(git -C build/pokefirered rev-parse HEAD)" = "c75f352304d529f6ba92d4f74b9cf8b5c3810788"
 
-      - name: Build agbcc
-        working-directory: build/agbcc
+      - name: Fetch and build agbcc
         run: |
+          git clone https://github.com/pret/agbcc.git build/agbcc
+          cd build/agbcc
           ./build.sh
           ./install.sh ../pokefirered
 
-      - name: Install Asterra v0.2 source overlay
+      - name: Apply Asterra overlay
         run: bash tools/apply_asterra_overlay.sh
 
-      - name: Build baseline GBA image
+      - name: Build FireRed GBA
         working-directory: build/pokefirered
         run: make -j2
 
-      - name: Verify GBA artifact
+      - name: Validate GBA artifact
         run: |
           test -f build/pokefirered/pokefirered.gba
-          file build/pokefirered/pokefirered.gba
           test "$(stat -c%s build/pokefirered/pokefirered.gba)" -gt 0
+          file build/pokefirered/pokefirered.gba
 
-      - name: Upload GBA build artifact
+      - name: Publish GBA build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Pokemon-Eclipse-Asterra-GBA-build
+          name: Pokemon-Eclipse-Asterra-v0.2-gba
           path: build/pokefirered/pokefirered.gba
           if-no-files-found: error
