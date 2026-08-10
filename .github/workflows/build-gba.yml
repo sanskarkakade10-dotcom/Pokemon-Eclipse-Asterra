@@ -1,0 +1,48 @@
+name: Build GBA
+
+on:
+  push:
+    branches: [main, v0.2-starter-system]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-gba:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Asterra project
+        uses: actions/checkout@v4
+
+      - name: Install GBA build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential binutils-arm-none-eabi git libpng-dev
+
+      - name: Fetch FireRed decompilation build base
+        run: |
+          git clone --depth 1 https://github.com/pret/pokefirered.git build/pokefirered
+          git clone --depth 1 https://github.com/pret/agbcc.git build/agbcc
+
+      - name: Build agbcc
+        working-directory: build/agbcc
+        run: |
+          ./build.sh
+          ./install.sh ../pokefirered
+
+      - name: Build baseline GBA image
+        working-directory: build/pokefirered
+        run: make -j2
+
+      - name: Verify GBA artifact
+        run: |
+          test -f build/pokefirered/pokefirered.gba
+          file build/pokefirered/pokefirered.gba
+          test "$(stat -c%s build/pokefirered/pokefirered.gba)" -gt 0
+
+      - name: Upload GBA build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pokemon-Eclipse-Asterra-GBA-build
+          path: build/pokefirered/pokefirered.gba
+          if-no-files-found: error
