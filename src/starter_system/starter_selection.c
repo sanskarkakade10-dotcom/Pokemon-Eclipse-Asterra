@@ -1,5 +1,5 @@
-#include "starter_sets.h"
-#include "rival_logic.h"
+#include "asterra/starter_sets.h"
+#include "asterra/rival_logic.h"
 
 /*
  * Pure game-data layer for the v0.2 selection flow.
