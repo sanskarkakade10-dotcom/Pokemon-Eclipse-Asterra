@@ -44,8 +44,6 @@ TRAINER_NAMES = {
     "TORCHIC": "TRAINER_ASTERRA_NOVA_TORCHIC",
 }
 
-# Add nine dedicated Nova trainers in the unused trainer-ID range immediately
-# after the upstream NUM_TRAINERS value (743 -> 752).
 opp = OPPONENTS.read_text()
 if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in opp:
     marker = "#define NUM_TRAINERS                             743"
@@ -60,8 +58,9 @@ if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in opp:
 #define TRAINER_ASTERRA_NOVA_TORCHIC            751
 
 #define NUM_TRAINERS                             752"""
-    opp = opp.replace(marker, additions)
-    OPPONENTS.write_text(opp)
+    if marker not in opp:
+        raise SystemExit("Unexpected upstream opponents.h: NUM_TRAINERS marker not found")
+    OPPONENTS.write_text(opp.replace(marker, additions))
 
 party_text = PARTY_FILE.read_text()
 if "sParty_AsterraNovaSquirtle" not in party_text:
@@ -77,8 +76,14 @@ if "sParty_AsterraNovaSquirtle" not in party_text:
             "    },\n"
             "};\n\n"
         )
-    party_text = party_text.replace(marker, "// Asterra v0.2: Nova's generation-aware level-5 counter parties.\n" + "".join(blocks) + marker)
-    PARTY_FILE.write_text(party_text)
+    if marker not in party_text:
+        raise SystemExit("Unexpected upstream trainer_parties.h: insertion marker not found")
+    PARTY_FILE.write_text(
+        party_text.replace(
+            marker,
+            "// Asterra v0.2: Nova's generation-aware level-5 counter parties.\n" + "".join(blocks) + marker,
+        )
+    )
 
 trainer_text = TRAINERS.read_text()
 if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in trainer_text:
@@ -86,21 +91,20 @@ if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in trainer_text:
     for name, party_name in PARTY_NAMES.items():
         entries.append(
             f"    [{TRAINER_NAMES[name]}] = {{\n"
-            "        .trainerClass = TRAINER_CLASS_RIVAL,\n"
-            "        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_RIVAL,\n"
-            "        .trainerPic = TRAINER_PIC_RIVAL,\n"
+            "        .trainerClass = TRAINER_CLASS_RIVAL_EARLY,\n"
+            "        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_MALE,\n"
+            "        .trainerPic = TRAINER_PIC_RIVAL_EARLY,\n"
             "        .trainerName = _(\"NOVA\"),\n"
             "        .items = {},\n"
             "        .doubleBattle = FALSE,\n"
-            "        .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE,\n"
+            "        .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE | AI_SCRIPT_TRY_TO_FAINT | AI_SCRIPT_CHECK_VIABILITY,\n"
             f"        .party = NO_ITEM_DEFAULT_MOVES({party_name}),\n"
             "    },\n"
         )
     last = trainer_text.rfind("\n};")
     if last < 0:
         raise SystemExit("Could not find gTrainers array terminator")
-    trainer_text = trainer_text[:last] + "\n" + "".join(entries) + trainer_text[last:]
-    TRAINERS.write_text(trainer_text)
+    TRAINERS.write_text(trainer_text[:last] + "\n" + "".join(entries) + trainer_text[last:])
 
 scripts = SCRIPTS.read_text()
 if "AsterraNovaBattle" not in scripts:
