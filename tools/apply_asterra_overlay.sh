@@ -24,4 +24,13 @@ cp "${ROOT}/src/starter_system/starter_selection.c" "${BUILD_DIR}/src/asterra_st
 python3 "${ROOT}/tools/patch_starter_scene.py"
 python3 "${ROOT}/tools/patch_nova_trainers.py"
 
+# FireRed's trainerbattle command stores its defeat-text reference as a
+# 16-bit script relocation. The newly generated Asterra defeat label can sit
+# beyond that range in script_data, so use the existing in-range rival victory
+# text for the trainerbattle defeat slot. The custom Asterra post-battle text
+# remains available through the normal msgbox command, which uses a full
+# script pointer.
+sed -i 's/PalletTown_ProfessorOaksLab_Text_AsterraNovaDefeat/Text_RivalVictory/g' \
+    "${BUILD_DIR}/data/maps/PalletTown_ProfessorOaksLab/scripts.inc"
+
 echo "Asterra v0.2 starter core, native starter selection, and Nova battle integration installed against ${UPSTREAM_COMMIT}."
