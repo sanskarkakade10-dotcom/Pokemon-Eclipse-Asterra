@@ -3,10 +3,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "build" / "pokefirered"
-OPPONENTS = BUILD / "include/constants/opponents.h"
+OPPONENTS_FILE = BUILD / "include/constants/opponents.h"
 PARTY_FILE = BUILD / "src/data/trainer_parties.h"
-TRAINERS = BUILD / "src/data/trainers.h"
-SCRIPTS = BUILD / "data/maps/PalletTown_ProfessorOaksLab/scripts.inc"
+TRAINERS_FILE = BUILD / "src/data/trainers.h"
+SCRIPTS_FILE = BUILD / "data/maps/PalletTown_ProfessorOaksLab/scripts.inc"
 
 PARTY_NAMES = {
     "SQUIRTLE": "sParty_AsterraNovaSquirtle",
@@ -44,8 +44,14 @@ TRAINER_NAMES = {
     "TORCHIC": "TRAINER_ASTERRA_NOVA_TORCHIC",
 }
 
-opp = OPPONENTS.read_text()
-if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in opp:
+# Keep every filesystem path as a Path object. Do not reuse these names for
+# dictionaries or generated text; this makes the overlay safe to re-run.
+for required_file in (OPPONENTS_FILE, PARTY_FILE, TRAINERS_FILE, SCRIPTS_FILE):
+    if not required_file.is_file():
+        raise SystemExit(f"Missing expected FireRed file: {required_file}")
+
+opponents_text = OPPONENTS_FILE.read_text()
+if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in opponents_text:
     marker = "#define NUM_TRAINERS                             743"
     additions = """#define TRAINER_ASTERRA_NOVA_SQUIRTLE           743
 #define TRAINER_ASTERRA_NOVA_BULBASAUR          744
@@ -58,16 +64,16 @@ if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in opp:
 #define TRAINER_ASTERRA_NOVA_TORCHIC            751
 
 #define NUM_TRAINERS                             752"""
-    if marker not in opp:
+    if marker not in opponents_text:
         raise SystemExit("Unexpected upstream opponents.h: NUM_TRAINERS marker not found")
-    OPPONENTS.write_text(opp.replace(marker, additions))
+    OPPONENTS_FILE.write_text(opponents_text.replace(marker, additions))
 
 party_text = PARTY_FILE.read_text()
 if "sParty_AsterraNovaSquirtle" not in party_text:
     marker = "// Start of actual trainer data"
-    blocks = []
+    party_blocks = []
     for name, party_name in PARTY_NAMES.items():
-        blocks.append(
+        party_blocks.append(
             f"static const struct TrainerMonNoItemDefaultMoves {party_name}[] = {{\n"
             "    {\n"
             "        .iv = 0,\n"
@@ -81,15 +87,17 @@ if "sParty_AsterraNovaSquirtle" not in party_text:
     PARTY_FILE.write_text(
         party_text.replace(
             marker,
-            "// Asterra v0.2: Nova's generation-aware level-5 counter parties.\n" + "".join(blocks) + marker,
+            "// Asterra v0.2: Nova's generation-aware level-5 counter parties.\n"
+            + "".join(party_blocks)
+            + marker,
         )
     )
 
-trainer_text = TRAINERS.read_text()
+trainer_text = TRAINERS_FILE.read_text()
 if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in trainer_text:
-    entries = []
+    trainer_entries = []
     for name, party_name in PARTY_NAMES.items():
-        entries.append(
+        trainer_entries.append(
             f"    [{TRAINER_NAMES[name]}] = {{\n"
             "        .trainerClass = TRAINER_CLASS_RIVAL_EARLY,\n"
             "        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_MALE,\n"
@@ -101,22 +109,32 @@ if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in trainer_text:
             f"        .party = NO_ITEM_DEFAULT_MOVES({party_name}),\n"
             "    },\n"
         )
-    last = trainer_text.rfind("\n};")
-    if last < 0:
+    trainer_array_end = trainer_text.rfind("\n};")
+    if trainer_array_end < 0:
         raise SystemExit("Could not find gTrainers array terminator")
-    TRAINERS.write_text(trainer_text[:last] + "\n" + "".join(entries) + trainer_text[last:])
-
-scripts = SCRIPTS.read_text()
-if "AsterraNovaBattle" not in scripts:
-    marker = "PalletTown_ProfessorOaksLab_EventScript_AsterraStarterReceived::\n"
-    start = scripts.index(marker)
-    end = scripts.index("\n\n", start)
-    current = scripts[start:end]
-    replacement = current.replace(
-        "\tmsgbox PalletTown_ProfessorOaksLab_Text_AsterraStarterReceived\n",
-        "\tmsgbox PalletTown_ProfessorOaksLab_Text_AsterraStarterReceived\n\tcall PalletTown_ProfessorOaksLab_EventScript_AsterraNovaBattle\n",
+    TRAINERS_FILE.write_text(
+        trainer_text[:trainer_array_end]
+        + "\n"
+        + "".join(trainer_entries)
+        + trainer_text[trainer_array_end:]
     )
-    scripts = scripts[:start] + replacement + scripts[end:]
+
+scripts_text = SCRIPTS_FILE.read_text()
+if "AsterraNovaBattle" not in scripts_text:
+    marker = "PalletTown_ProfessorOaksLab_EventScript_AsterraStarterReceived::\n"
+    if marker not in scripts_text:
+        raise SystemExit("Starter received event was not found in Pallet Town lab scripts")
+    start = scripts_text.index(marker)
+    end = scripts_text.find("\n\n", start)
+    if end < 0:
+        raise SystemExit("Could not find end of starter received event")
+    current_event = scripts_text[start:end]
+    if "AsterraNovaBattle" not in current_event:
+        current_event = current_event.replace(
+            "\tmsgbox PalletTown_ProfessorOaksLab_Text_AsterraStarterReceived\n",
+            "\tmsgbox PalletTown_ProfessorOaksLab_Text_AsterraStarterReceived\n\tcall PalletTown_ProfessorOaksLab_EventScript_AsterraNovaBattle\n",
+        )
+    scripts_text = scripts_text[:start] + current_event + scripts_text[end:]
 
     battle_block = r'''
 
@@ -180,7 +198,6 @@ PalletTown_ProfessorOaksLab_Text_AsterraNovaDefeat::
 PalletTown_ProfessorOaksLab_Text_AsterraNovaAfterBattle::
 	.string "NOVA: This is only the beginning.\\nLet's see what Asterra has in store!$"
 '''
-    scripts += battle_block
-    SCRIPTS.write_text(scripts)
+    SCRIPTS_FILE.write_text(scripts_text + battle_block)
 
 print("Asterra v0.2 Nova trainer parties and native opening battle integration applied.")
