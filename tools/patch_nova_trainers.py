@@ -4,23 +4,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "build" / "pokefirered"
 OPPONENTS = BUILD / "include/constants/opponents.h"
-PARTIES = BUILD / "src/data/trainer_parties.h"
+PARTY_FILE = BUILD / "src/data/trainer_parties.h"
 TRAINERS = BUILD / "src/data/trainers.h"
 SCRIPTS = BUILD / "data/maps/PalletTown_ProfessorOaksLab/scripts.inc"
 
-TRAINER_IDS = {
-    "SQUIRTLE": 743,
-    "BULBASAUR": 744,
-    "CHARMANDER": 745,
-    "TOTODILE": 746,
-    "CHIKORITA": 747,
-    "CYNDAQUIL": 748,
-    "MUDKIP": 749,
-    "TREECKO": 750,
-    "TORCHIC": 751,
-}
-
-PARTIES = {
+PARTY_NAMES = {
     "SQUIRTLE": "sParty_AsterraNovaSquirtle",
     "BULBASAUR": "sParty_AsterraNovaBulbasaur",
     "CHARMANDER": "sParty_AsterraNovaCharmander",
@@ -44,45 +32,60 @@ SPECIES = {
     "TORCHIC": "SPECIES_TORCHIC",
 }
 
+TRAINER_NAMES = {
+    "SQUIRTLE": "TRAINER_ASTERRA_NOVA_SQUIRTLE",
+    "BULBASAUR": "TRAINER_ASTERRA_NOVA_BULBASAUR",
+    "CHARMANDER": "TRAINER_ASTERRA_NOVA_CHARMANDER",
+    "TOTODILE": "TRAINER_ASTERRA_NOVA_TOTODILE",
+    "CHIKORITA": "TRAINER_ASTERRA_NOVA_CHIKORITA",
+    "CYNDAQUIL": "TRAINER_ASTERRA_NOVA_CYNDAQUIL",
+    "MUDKIP": "TRAINER_ASTERRA_NOVA_MUDKIP",
+    "TREECKO": "TRAINER_ASTERRA_NOVA_TREECKO",
+    "TORCHIC": "TRAINER_ASTERRA_NOVA_TORCHIC",
+}
+
 # Add nine dedicated Nova trainers in the unused trainer-ID range immediately
 # after the upstream NUM_TRAINERS value (743 -> 752).
 opp = OPPONENTS.read_text()
 if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in opp:
     marker = "#define NUM_TRAINERS                             743"
-    additions = """#define TRAINER_ASTERRA_NOVA_SQUIRTLE           743\n#define TRAINER_ASTERRA_NOVA_BULBASAUR          744\n#define TRAINER_ASTERRA_NOVA_CHARMANDER         745\n#define TRAINER_ASTERRA_NOVA_TOTODILE           746\n#define TRAINER_ASTERRA_NOVA_CHIKORITA          747\n#define TRAINER_ASTERRA_NOVA_CYNDAQUIL          748\n#define TRAINER_ASTERRA_NOVA_MUDKIP             749\n#define TRAINER_ASTERRA_NOVA_TREECKO            750\n#define TRAINER_ASTERRA_NOVA_TORCHIC            751\n\n#define NUM_TRAINERS                             752"""
+    additions = """#define TRAINER_ASTERRA_NOVA_SQUIRTLE           743
+#define TRAINER_ASTERRA_NOVA_BULBASAUR          744
+#define TRAINER_ASTERRA_NOVA_CHARMANDER         745
+#define TRAINER_ASTERRA_NOVA_TOTODILE           746
+#define TRAINER_ASTERRA_NOVA_CHIKORITA          747
+#define TRAINER_ASTERRA_NOVA_CYNDAQUIL          748
+#define TRAINER_ASTERRA_NOVA_MUDKIP             749
+#define TRAINER_ASTERRA_NOVA_TREECKO            750
+#define TRAINER_ASTERRA_NOVA_TORCHIC            751
+
+#define NUM_TRAINERS                             752"""
     opp = opp.replace(marker, additions)
     OPPONENTS.write_text(opp)
 
-# Add simple level-5 parties before the actual trainer-party section.
-party_text = PARTIES.read_text()
+party_text = PARTY_FILE.read_text()
 if "sParty_AsterraNovaSquirtle" not in party_text:
     marker = "// Start of actual trainer data"
-    block = "\n".join(
-        [
-            "// Asterra v0.2: Nova's generation-aware level-5 counter parties.",
-        ]
-        + [
-            f"static const struct TrainerMonNoItemDefaultMoves {PARTIES[name]}[] = {{",
-            "    {",
-            "        .iv = 0,",
-            "        .lvl = 5,",
-            f"        .species = {SPECIES[name]},",
-            "    },",
-            "};",
-            "",
-        ]
-        for name in PARTIES
-    )
-    party_text = party_text.replace(marker, block + marker)
-    PARTIES.write_text(party_text)
+    blocks = []
+    for name, party_name in PARTY_NAMES.items():
+        blocks.append(
+            f"static const struct TrainerMonNoItemDefaultMoves {party_name}[] = {{\n"
+            "    {\n"
+            "        .iv = 0,\n"
+            "        .lvl = 5,\n"
+            f"        .species = {SPECIES[name]},\n"
+            "    },\n"
+            "};\n\n"
+        )
+    party_text = party_text.replace(marker, "// Asterra v0.2: Nova's generation-aware level-5 counter parties.\n" + "".join(blocks) + marker)
+    PARTY_FILE.write_text(party_text)
 
-# Add nine trainer records immediately before the trainer array terminator.
 trainer_text = TRAINERS.read_text()
 if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in trainer_text:
     entries = []
-    for name in PARTIES:
+    for name, party_name in PARTY_NAMES.items():
         entries.append(
-            f'''    [TRAINER_ASTERRA_NOVA_{name}] = {{\n'''
+            f"    [{TRAINER_NAMES[name]}] = {{\n"
             "        .trainerClass = TRAINER_CLASS_RIVAL,\n"
             "        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_RIVAL,\n"
             "        .trainerPic = TRAINER_PIC_RIVAL,\n"
@@ -90,7 +93,7 @@ if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in trainer_text:
             "        .items = {},\n"
             "        .doubleBattle = FALSE,\n"
             "        .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE,\n"
-            f"        .party = NO_ITEM_DEFAULT_MOVES({PARTIES[name]}),\n"
+            f"        .party = NO_ITEM_DEFAULT_MOVES({party_name}),\n"
             "    },\n"
         )
     last = trainer_text.rfind("\n};")
@@ -99,7 +102,6 @@ if "TRAINER_ASTERRA_NOVA_SQUIRTLE" not in trainer_text:
     trainer_text = trainer_text[:last] + "\n" + "".join(entries) + trainer_text[last:]
     TRAINERS.write_text(trainer_text)
 
-# Add the nine battle branches to the starter scene after the starter is received.
 scripts = SCRIPTS.read_text()
 if "AsterraNovaBattle" not in scripts:
     marker = "PalletTown_ProfessorOaksLab_EventScript_AsterraStarterReceived::\n"
@@ -167,10 +169,14 @@ PalletTown_ProfessorOaksLab_EventScript_AsterraNovaTreecko::
 PalletTown_ProfessorOaksLab_EventScript_AsterraNovaTorchic::
 	trainerbattle TRAINER_ASTERRA_NOVA_TORCHIC, 0, PalletTown_ProfessorOaksLab_Text_AsterraNovaDefeat, Text_RivalVictory
 	return
+
+PalletTown_ProfessorOaksLab_Text_AsterraNovaDefeat::
+	.string "NOVA: Not bad, {PLAYER}!$"
+
+PalletTown_ProfessorOaksLab_Text_AsterraNovaAfterBattle::
+	.string "NOVA: This is only the beginning.\\nLet's see what Asterra has in store!$"
 '''
     scripts += battle_block
-    scripts += '\nPalletTown_ProfessorOaksLab_Text_AsterraNovaDefeat::\n    .string "NOVA: Not bad, {PLAYER}!$"\n'
-    scripts += 'PalletTown_ProfessorOaksLab_Text_AsterraNovaAfterBattle::\n    .string "NOVA: This is only the beginning.\nLet\'s see what Asterra has in store!$"\n'
     SCRIPTS.write_text(scripts)
 
 print("Asterra v0.2 Nova trainer parties and native opening battle integration applied.")
