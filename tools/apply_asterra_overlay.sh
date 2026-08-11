@@ -22,5 +22,6 @@ cp "${ROOT}/src/starter_system/rival_logic.h" "${BUILD_DIR}/include/asterra/riva
 cp "${ROOT}/src/starter_system/starter_selection.c" "${BUILD_DIR}/src/asterra_starter_selection.c"
 
 python3 "${ROOT}/tools/patch_starter_scene.py"
+python3 "${ROOT}/tools/patch_nova_trainers.py"
 
-echo "Asterra v0.2 starter core and native starter selection installed against ${UPSTREAM_COMMIT}."
+echo "Asterra v0.2 starter core, native starter selection, and Nova battle integration installed against ${UPSTREAM_COMMIT}."
