@@ -1,0 +1,1 @@
+Trigger a fresh Asterra v0.2 GBA build after the compiler-side fix.
