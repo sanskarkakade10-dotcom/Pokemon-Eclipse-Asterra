@@ -196,7 +196,7 @@ PalletTown_ProfessorOaksLab_Text_AsterraNovaDefeat::
 	.string "NOVA: Not bad, {PLAYER}!$"
 
 PalletTown_ProfessorOaksLab_Text_AsterraNovaAfterBattle::
-	.string "NOVA: This is only the beginning.\\nLet's see what Asterra has in store!$"
+	.string "NOVA: This is only the beginning.\nLet's see what Asterra has in store!$"
 '''
     SCRIPTS_FILE.write_text(scripts_text + battle_block)
 
